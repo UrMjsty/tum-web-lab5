@@ -1,40 +1,62 @@
 import re
 import socket
 import sys
+import ssl
 
 DEFAULT_HTTP_PORT = 80
+DEFAULT_HTTPS_PORT = 443
 
-def send_http_request(host, path="/"):
+def send_http_request(host, path="/", use_https=False):
+    """Send an HTTP/HTTPS request and return the response"""
+    port = DEFAULT_HTTPS_PORT if use_https else DEFAULT_HTTP_PORT
     request = f"GET {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((host, DEFAULT_HTTP_PORT))
-        s.sendall(request.encode())
+    with socket.create_connection((host, port)) as sock:
+        if use_https:
+            sock = ssl.wrap_socket(sock, ssl_version=ssl.PROTOCOL_TLS)
+
+        sock.sendall(request.encode())
         response = b""
-        while chunk := s.recv(4096):
+        while chunk := sock.recv(4096):
             response += chunk
 
     return response.decode(errors="ignore")
 
 
+def clean_html(html):
+    """Removes <script>, <style>, and HTML tags, preserving meaningful text."""
+    html = re.sub(r'<script.*?>.*?</script>', '', html, flags=re.DOTALL)  # Remove <script>...</script>
+    html = re.sub(r'<style.*?>.*?</style>', '', html, flags=re.DOTALL)    # Remove <style>...</style>
+    html = re.sub(r'<[^>]+>', '', html)  # Remove all remaining HTML tags
+    html = re.sub(r'\s+', ' ', html).strip()  # Normalize spaces
+    return html
+
+
 def parse_http_response(response):
+    """Parse HTTP headers and extract meaningful content."""
     headers, _, body = response.partition("\r\n\r\n")
+
+    # Handle HTTP redirects (301/302)
     if "302 Found" in headers or "301 Moved Permanently" in headers:
         match = re.search(r"Location: (.+?)\r", headers)
         if match:
             return f"Redirected to: {match.group(1)}"
-    return re.sub(r"<.*?>", "", body)  # Strip HTML tags
+
+    return clean_html(body)  # Return cleaned-up content
 
 
 def handle_url(url):
-    match = re.match(r"https?://([^/]+)(/.*)?", url)
+    """Process a URL request, handling HTTP and HTTPS"""
+    match = re.match(r"(https?)://([^/]+)(/.*)?", url)
     if not match:
         print("Invalid URL format.")
         return
 
-    host, path = match.groups()
+    protocol, host, path = match.groups()
     path = path or "/"
-    response = send_http_request(host, path)
+    use_https = (protocol == "https")  # Determine HTTPS usage
+
+    response = send_http_request(host, path, use_https)
     print(parse_http_response(response))
 
 
@@ -49,6 +71,7 @@ def main():
     if len(sys.argv) < 2:
         show_help()
         return
+
     option = sys.argv[1]
     if option == "-h":
         show_help()
@@ -58,5 +81,7 @@ def main():
         print("Placeholder for search")
     else:
         print("Invalid command. Use -h for help.")
+
+
 if __name__ == "__main__":
-        main()
+    main()
