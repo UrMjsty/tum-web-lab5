@@ -1,3 +1,4 @@
+import json
 import re
 import socket
 import sys
@@ -5,6 +6,7 @@ import ssl
 
 DEFAULT_HTTP_PORT = 80
 DEFAULT_HTTPS_PORT = 443
+RESPONCE_LENGTH = 500
 
 def send_http_request(host, path="/", use_https=False):
     """Send an HTTP/HTTPS request and return the response"""
@@ -42,6 +44,15 @@ def parse_http_response(response):
         if match:
             return f"Redirected to: {match.group(1)}"
 
+    # Check if the response is JSON
+    if "application/json" in headers.lower():
+        try:
+            json_data = json.loads(body)
+            return json.dumps(json_data, indent=4)  # Pretty print JSON
+        except json.JSONDecodeError:
+            return "Failed to decode JSON."
+
+    # Otherwise, clean the HTML response
     return clean_html(body)  # Return cleaned-up content
 
 
