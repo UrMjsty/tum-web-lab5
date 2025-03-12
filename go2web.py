@@ -11,5 +11,9 @@ def main():
     if len(sys.argv) < 2:
         show_help()
         return
+    option = sys.argv[1]
+    if option == "-h":
+        show_help()
+
 if __name__ == "__main__":
         main()
