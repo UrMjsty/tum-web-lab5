@@ -94,8 +94,8 @@ def main():
     elif option == "-u" and len(sys.argv) > 2:
         handle_url(sys.argv[2])
     elif option == "-s" and len(sys.argv) > 2:
-        print("Searching for term:", sys.argv[2])
-        handle_search(sys.argv[2])
+        #print(" ".join(sys.argv[2:]))
+        handle_search(" ".join(sys.argv[2:]))
     else:
         print("Invalid command. Use -h for help.")
 
