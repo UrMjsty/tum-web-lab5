@@ -1,3 +1,8 @@
+import argparse
+import urllib
+
+import url_browser
+from url_browser import URLBrowser
 import json
 import re
 import socket
@@ -89,10 +94,14 @@ def main():
     elif option == "-u" and len(sys.argv) > 2:
         handle_url(sys.argv[2])
     elif option == "-s" and len(sys.argv) > 2:
-        print("Placeholder for search")
+        #print(" ".join(sys.argv[2:]))
+        handle_search(" ".join(sys.argv[2:]))
     else:
         print("Invalid command. Use -h for help.")
 
+
+def handle_search(query):
+    url_browser.make_search(query)
 
 if __name__ == "__main__":
     main()
